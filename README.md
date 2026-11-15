@@ -41,3 +41,43 @@ This is a collection of problems in the best order to learn them, along with the
 * To legitimately pass technical interviews or online assessments and get a job without nepotism — only with my skills and dedication, no matter how long it takes.
 
 
+
+---
+
+## DSA Puzzle Lab (interactive game)
+
+**Play:** https://voostorm.github.io/dsa/
+
+The original study library is preserved at [reference-library.html](https://voostorm.github.io/dsa/reference-library.html). The game is now the root `index.html`; the existing problem-specific reference pages remain available.
+
+### First playable release
+
+Five curated Python problems: Contains Duplicate, Two Sum, Valid Anagram, Binary Search and Longest Consecutive Sequence.
+
+The game has seven player-selectable learning modes:
+
+1. Reconstruct what the problem asks.
+2. Reconstruct the algorithm plan.
+3. Arrange meaningful Python blocks.
+4. Arrange whole Python lines.
+5. Arrange finer Python fragments.
+6. Write missing Python lines.
+7. Solve independently in an empty editor.
+
+Use **Rescramble** for a fresh arrangement, **Run Python tests** for immediate feedback and **Give me a hint** for non-spoiling guidance. Progress is stored in your browser's local storage, not in a server account.
+
+### Tech and constraints
+
+- Static HTML, CSS and vanilla JavaScript deployed from the `main` branch on GitHub Pages. No build tool or paid API is required.
+- Python execution is powered by [Pyodide](https://pyodide.org/) inside a Web Worker. Its first use requires downloading the runtime from a CDN; execution is stopped after a timeout.
+- The curated reference solutions and tests are included in client-side source so they are not shown in the game UI, but **cannot be kept secret from developer tools on a static site**.
+- Arbitrary problem import, screenshot/URL interpretation, true AI-generated solutions and generative AI coaching require a separate backend and are not implemented in this initial release. No API keys are collected by the current game.
+- Local progress proves practice-mode completion; it does not independently certify interview mastery.
+
+### Development
+
+The game source is in `index.html`, `game/app.js`, `game/problems.js`, `game/py-worker.js` and `game/style.css`.
+
+For local testing, serve the repository using a local HTTP server (for example `python3 -m http.server 8000`) and open `http://localhost:8000/`. Opening the files directly with `file://` may block Web Workers.
+
+Product and learning-design decisions are tracked separately in Google Drive at `dsa-puzzle-game/dsa-puzzle-game.md`.
