@@ -1,132 +1,78 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Data Structures and Algorithms</title>
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      margin: 2rem;
-      line-height: 1.6;
-      background: #f5f7fb;
-      color: #1a1a1a;
-    }
-
-    details {
-      margin-bottom: 0.85rem;
-      border: 1px solid #d9d9d9;
-      border-radius: 8px;
-      padding: 0.9rem 1rem;
-      background: #ffffff;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
-    }
-
-    summary {
-      font-weight: 700;
-      cursor: pointer;
-      list-style: none;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    summary::-webkit-details-marker {
-      display: none;
-    }
-
-    .toggle-arrow {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 1.25rem;
-      height: 1.25rem;
-      font-size: 0.8rem;
-      transition: transform 0.2s ease;
-      flex-shrink: 0;
-    }
-
-    details[open] .toggle-arrow {
-      transform: rotate(90deg);
-    }
-
-    .nav-link {
-      color: #111827;
-      text-decoration: none;
-      font-weight: 700;
-      transition: color 0.15s ease;
-      flex: 1;
-    }
-
-    .nav-link:hover,
-    .nav-link:focus-visible {
-      color: #0f172a;
-      text-decoration: underline;
-    }
-
-    .sub-items {
-      margin-top: 0.9rem;
-      display: grid;
-      gap: 0.6rem;
-    }
-
-    .nav-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.75rem 1rem;
-      border-radius: 999px;
-      border: 1px solid #cbd5e1;
-      background: #f8fafc;
-      color: #111827;
-      text-decoration: none;
-      font-size: 0.95rem;
-      transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-    }
-
-    .nav-button:hover,
-    .nav-button:focus-visible {
-      background: #e2e8f0;
-      border-color: #94a3b8;
-      transform: translateY(-1px);
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0a1020">
+  <meta name="description" content="Learn to solve unseen DSA interview problems by reconstructing, testing and writing Python solutions.">
+  <title>DSA Puzzle Lab · Learn by building</title>
+  <link rel="stylesheet" href="./game/style.css">
 </head>
 <body>
-  <details>
-    <summary>
-      <span class="toggle-arrow">▶</span>
-      <span class="nav-link">Arrays & Hashing</span>
-    </summary>
-    <div class="sub-items">
-      <a class="nav-button" href="arrays-hashing/problems/contains-duplicate.html">Contains Duplicate</a>
-      <a class="nav-button" href="arrays-hashing/problems/two-sum.html">Two Sum</a>
-      <a class="nav-button" href="arrays-hashing/problems/valid-anagram.html">Valid Anagram</a>
-      <a class="nav-button" href="arrays-hashing/problems/group-anagrams.html">Group Anagrams</a>
-      <a class="nav-button" href="arrays-hashing/problems/top-k-frequent-elements.html">Top K Frequent Elements</a>
-      <a class="nav-button" href="arrays-hashing/problems/valid-sudoku.html">Valid Sudoku</a>
-      <a class="nav-button" href="arrays-hashing/problems/longest-consecutive-sequence.html">Longest Consecutive Sequence</a>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <a href="./" class="brand" aria-label="DSA Puzzle Lab homepage"><span class="brand-icon">⌘</span><span>DSA<span class="brand-light"> / PUZZLE LAB</span></span></a>
+    <nav class="topnav"><a class="nav-current" href="./">Puzzle studio</a><a href="./reference-library.html">Original study library ↗</a><a href="https://github.com/voostorm/dsa" target="_blank" rel="noopener">GitHub ↗</a></nav>
+    <div class="save-indicator"><span class="save-dot"></span> Progress saved locally</div>
+  </header>
+  <div class="shell">
+    <section class="intro">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> INTERACTIVE PYTHON PRACTICE <span class="eyebrow-separator">/</span> FIRST PLAYABLE BUILD</div>
+      <h1>Don't memorize the answer.<br><span>Build your way to it.</span></h1>
+      <p>One problem. Scrambled pieces. Real Python tests. Less help each round, until you can write it on your own.</p>
+    </section>
+    <div class="metrics" aria-label="Your progress">
+      <div class="metric"><div class="metric-label">SKILLS IN STUDIO</div><div class="metric-value" id="metric-problems">05 <span class="metric-small">problems</span></div></div>
+      <div class="metric"><div class="metric-label">MODES COMPLETED</div><div class="metric-value" id="metric-completed">00 <span class="metric-small">/ 35</span></div></div>
+      <div class="metric"><div class="metric-label">FULL-CODE WINS</div><div class="metric-value" id="metric-mastered">00 <span class="metric-small">mastered</span></div></div>
+      <div class="metric metric-message"><div class="metric-label">YOUR NORTH STAR</div><strong>Unseen problem → independent solution</strong><span>Not a score based on memorizing a layout.</span></div>
     </div>
-  </details>
-  <details>
-    <summary>
-      <span class="toggle-arrow">▶</span>
-      <span class="nav-link">Binary Search</span>
-    </summary>
-    <div class="sub-items">
-      <a class="nav-button" href="binary-search/problems/binary-search.html">Binary Search</a>
-      <a class="nav-button" href="binary-search/problems/search-a-2d-matrix.html">Search a 2D Matrix</a>
-      <a class="nav-button" href="binary-search/problems/koko-eating-bananas.html">Koko Eating Bananas</a>
-      <a class="nav-button" href="binary-search/problems/find-minimum-in-rotated-sorted-array.html">Find Minimum in Sorted Array</a>
-    </div>
-  </details>
-
-  <script>
-    // Prevent details toggle when clicking the link, but allow link navigation
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.stopPropagation();
-      });
-    });
-  </script>
+    <main class="studio" id="studio">
+      <aside class="panel problem-panel" aria-label="Problem and challenge">
+        <div class="panel-top"><span class="step-label">01 / THE CHALLENGE</span><span class="tiny-pill">FOCUS MODE</span></div>
+        <label class="field-label" for="problem-select">CHOOSE A PROBLEM</label>
+        <div class="select-wrap"><select id="problem-select" aria-label="Select a problem"></select></div>
+        <div class="problem-meta"><span class="tag" id="problem-topic">Arrays & Hashing</span><span class="tag tag-green" id="problem-difficulty">Easy</span></div>
+        <h2 id="problem-title">Contains Duplicate</h2>
+        <div class="problem-statement" id="problem-statement"></div>
+        <div class="example-box"><div class="example-heading">EXAMPLE</div><pre id="problem-example"></pre></div>
+        <div class="goal-box"><span class="goal-icon">◎</span><div><strong>Your goal</strong><p>Understand each step. Then write the solution from a blank editor.</p></div></div>
+        <div class="side-footer">Your original <a href="./reference-library.html">DSA study pages</a> are still here.</div>
+      </aside>
+      <section class="panel work-panel" aria-label="Puzzle workspace">
+        <div class="panel-top"><span class="step-label">02 / RECONSTRUCT</span><span id="session-status" class="work-status">● IN PROGRESS</span></div>
+        <div class="work-heading"><div><h2>Build the solution</h2><p>Choose how much of the algorithm you want to reconstruct.</p></div><div class="mode-count" id="mode-count">MODE 3 / 7</div></div>
+        <label class="field-label" for="mode-select">PUZZLE DIFFICULTY</label>
+        <div class="mode-row"><select id="mode-select">
+          <option value="0">01 · Understand the prompt</option><option value="1">02 · Plan the approach</option>
+          <option value="2" selected>03 · Arrange logical blocks</option><option value="3">04 · Arrange Python lines</option>
+          <option value="4">05 · Arrange fine fragments</option><option value="5">06 · Write missing lines</option>
+          <option value="6">07 · Code from scratch</option>
+        </select><button class="btn btn-soft" id="scramble-btn" title="Get a fresh random arrangement">⤨ Rescramble</button></div>
+        <p id="mode-description" class="mode-description">Move pieces into a working algorithm. They are deliberately out of order.</p>
+        <div id="pieces-view">
+          <div class="zone-heading"><div><span class="zone-icon">▦</span> PIECE BANK <span class="zone-count" id="bank-count"></span></div><span>Click a piece to place it ↓</span></div>
+          <div class="piece-bank" id="piece-bank" aria-label="Scrambled pieces"></div>
+          <div class="zone-heading zone-heading-assembly"><div><span class="zone-icon">⌑</span> YOUR ASSEMBLY <span class="zone-count" id="placed-count"></span></div><span>Drag to reorder, or use ↑ ↓</span></div>
+          <div class="assembly" id="assembly" aria-label="Solution assembly"></div>
+        </div>
+        <div id="editor-view" hidden><div class="editor-top"><span>solution.py</span><span>PYTHON 3</span></div><textarea id="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Python editor"></textarea></div>
+        <div class="code-section"><div class="code-heading"><span>⌘ LIVE CODE PREVIEW</span><span class="muted">Your assembled code, not the answer</span></div><pre id="code-preview" class="code-preview"></pre></div>
+        <div class="action-row"><button id="run-btn" class="btn btn-primary"><span>▶</span> Run Python tests</button><button id="hint-btn" class="btn btn-soft">✦ Give me a hint</button><button id="next-mode-btn" class="btn btn-outline">Level up →</button></div>
+        <div class="shortcut-hint">Run your assembly to discover what's wrong. Tests run locally in your browser using Pyodide.</div>
+      </section>
+      <aside class="panel feedback-panel" aria-label="Test results and coaching">
+        <div class="panel-top"><span class="step-label">03 / LEARN & ITERATE</span><span class="tiny-pill">NO SPOILERS</span></div>
+        <h2>Feedback studio</h2><p class="subtle">Failures are clues, not penalties.</p>
+        <div id="results"><div class="empty-feedback"><span class="feedback-graphic">⌁</span><strong>Your next discovery starts here</strong><p>Arrange the pieces and run your first test. You'll see what works, what fails, and why.</p></div></div>
+        <div class="coach-box"><div class="coach-heading"><span class="coach-symbol">✧</span> GUIDED COACH <span class="coach-label">NON-REVEALING</span></div><p id="coach-message">If you get stuck, ask for a hint. I'll help you think about the problem—not tell you where to place a piece.</p></div>
+        <div class="progress-box"><div class="progress-top"><strong>This problem</strong><span id="progress-number">0 / 7</span></div><div class="progress-bar"><span id="progress-fill"></span></div><p>Each mode you solve is practice. A fresh blank-editor solve is the strongest proof of mastery.</p></div>
+        <div class="privacy-note">◇ This prototype uses verified built-in problems and local guidance. AI-generated arbitrary problems and private server-side solutions are future work—not active features.</div>
+      </aside>
+    </main>
+    <footer>DSA PUZZLE LAB <span>·</span> Think → Assemble → Test → Explain → Write from scratch <span>·</span> <a href="https://github.com/voostorm/dsa">OPEN SOURCE</a></footer>
+  </div>
+  <script src="./game/problems.js"></script>
+  <script src="./game/app.js"></script>
 </body>
 </html>
