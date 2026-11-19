@@ -56,6 +56,9 @@
     .bank-heading h2{font-size:14px;font-weight:650;letter-spacing:-.02em;margin:0;color:#304159}.bank-count{font-size:11px;color:#98a3b2}
     .pieces{display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-height:16px}
     .piece{width:auto;max-width:100%;display:flex;align-items:center;text-align:left;gap:12px;border:1px solid #e1e7ef;background:#fff;color:#3b536f;border-radius:9px;padding:10px 13px;font:13px/22px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:0 2px 6px #1e2f4610;cursor:grab;transition:border-color .1s,box-shadow .1s;touch-action:manipulation}
+    /* Keep drag grips toward the outer edge of the viewport as the panes swap. */
+    .app:not(.swapped) .pieces .piece{flex-direction:row-reverse}
+    .app.swapped .pieces .piece{flex-direction:row}
     .piece:hover{border-color:#95b1d2;box-shadow:0 3px 10px #1e2f4618}.piece:active{cursor:grabbing}.piece.dragging{opacity:.35}
     .grip{color:#b4becc;font-size:16px;letter-spacing:-5px;flex:0 0 15px}.piece-code{white-space:pre;overflow-x:auto;scrollbar-width:thin;min-width:0}
     .bank-empty{font-size:12px;color:#9aa6b5;padding:8px 0}
