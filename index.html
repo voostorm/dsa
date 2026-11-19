@@ -209,12 +209,12 @@
       }
       remaining.forEach(function(piece){
         var btn=document.createElement("button");btn.type="button";btn.className="piece";
-        btn.setAttribute("aria-label","Insert "+piece.text.trim()+" into editor");
+        btn.setAttribute("aria-label","Drag "+piece.text.trim()+" into the editor");
         var grip=document.createElement("span");grip.className="grip";grip.textContent="⋮⋮";grip.setAttribute("aria-hidden","true");
         var label=document.createElement("span");label.className="piece-code";label.textContent=piece.text;
         btn.append(grip,label);
         btn.addEventListener("pointerdown",function(e){prepareDrag(e,"bank",piece.id);});
-        btn.addEventListener("click",function(){if(active&&active.started)return;movePiece(piece.id,placed.length);});
+        // Placement requires a drag (mouse) or touch-and-hold drag (mobile).
         bank.appendChild(btn);
       });
     }
