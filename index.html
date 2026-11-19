@@ -70,7 +70,7 @@
     .code-stack{padding:20px 23px;min-height:100%}
     .fixed-line,.assembled-line{height:30px;line-height:30px;white-space:pre}
     .fixed-line{color:#dce6f5;user-select:none}
-    .assembled-line{max-width:100%;width:max-content;min-width:185px;padding:0 8px 0 0;border-radius:6px;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;color:#dce6f5}
+    .assembled-line{width:max-content;max-width:none;min-width:0;padding:0 6px;border-radius:6px;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;color:#dce6f5;box-sizing:content-box}
     .assembled-line:hover,.assembled-line:focus-visible{background:#25374e;outline:none}
     .assembled-line:active{cursor:grabbing}
     .assembled-line.drag-source{opacity:.27}
@@ -78,10 +78,11 @@
     .editor-landing{font:12px/30px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#536780;min-height:30px;user-select:none}
     .editor-landing.has-lines{color:transparent}
     .drop-guide{left:21px;right:21px;border-radius:2px;z-index:3}
+    .indent-guide{position:absolute;top:0;bottom:0;width:0;border-left:2px dashed #8bd9f7;filter:drop-shadow(0 0 3px #8bd9f790);pointer-events:none;display:none;z-index:3}
     .piece{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
     .drag-ghost{position:fixed;z-index:1000;pointer-events:none;padding:7px 12px;border:1px solid #9bb6d6;border-radius:8px;background:#f8fbff;color:#334e6d;font:13px/22px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;box-shadow:0 12px 30px #18283e30;max-width:85vw;overflow:hidden}
     .reset-btn:focus-visible,.assembled-line:focus-visible{outline:2px solid #a9d6fd;outline-offset:1px}
-    @media(max-width:750px){.code-stack{padding:17px 16px}.assembled-line{min-width:145px}.editor-landing{font-size:11px}.editor-actions{gap:5px}.reset-btn{padding:7px 3px}}
+    @media(max-width:750px){.code-stack{padding:17px 16px}.editor-landing{font-size:11px}.editor-actions{gap:5px}.reset-btn{padding:7px 3px}}
   </style>
 </head>
 <body>
@@ -121,6 +122,7 @@
               <div class="editor-landing" id="editor-landing">Drag code lines here</div>
             </div>
             <div class="drop-guide" id="drop-guide" aria-hidden="true"></div>
+            <div class="indent-guide" id="indent-guide" aria-hidden="true"></div>
           </div>
         </div>
         <div class="feedback" id="feedback" role="status" aria-live="polite">Drag a line into the editor to build the solution.</div>
@@ -137,7 +139,7 @@
     "use strict";
     var $ = function(id){return document.getElementById(id);};
     var app=$("app"), area=$("editor-area"), bank=$("pieces"), count=$("bank-count");
-    var fixed=$("fixed-line"), board=$("assembled-lines"), landing=$("editor-landing"), guide=$("drop-guide");
+    var fixed=$("fixed-line"), board=$("assembled-lines"), landing=$("editor-landing"), guide=$("drop-guide"), indentGuide=$("indent-guide"), stack=$("code-stack");
     var feedback=$("feedback"), workScroll=$("work-scroll");
     var signature="def contains_duplicate(nums):";
     var pieces=[
@@ -148,7 +150,7 @@
       {id:4,text:"            return True"},
       {id:5,text:"    seen = set()"}
     ];
-    var placed=[], active=null, ghost=null, scrollFrame=null, firstTouchRow=null;
+    var placed=[], indents={}, active=null, ghost=null, scrollFrame=null, firstTouchRow=null;
     var runWorker=null, timeout=null, runId=0;
     var tests=[
       {args:[[1,2,3,1]],expected:true},
@@ -158,8 +160,14 @@
       {args:[[-1,0,-1]],expected:true},
       {args:[[0]],expected:false}
     ];
-    var editor={get value(){return signature+"\n"+placed.map(function(id){return pieceById(id).text;}).join("\n");}};
+    var editor={get value(){return signature+"\n"+placed.map(function(id){return " ".repeat(4*indentLevel(id))+pieceById(id).text.trimStart();}).join("\n");}};
     function pieceById(id){return pieces.find(function(p){return p.id===id;});}
+    function defaultIndent(id){return (pieceById(id).text.match(/^ */)[0].length/4)|0;}
+    function indentLevel(id){return indents[id]===undefined?defaultIndent(id):indents[id];}
+    function indentStep(){var rect=stack.getBoundingClientRect(),style=getComputedStyle(fixed);
+      var probe=document.createElement("span");probe.textContent="    ";probe.style.font=style.font;probe.style.whiteSpace="pre";probe.style.position="absolute";probe.style.visibility="hidden";stack.appendChild(probe);var width=probe.getBoundingClientRect().width;probe.remove();return width||32.5;}
+    function codeOrigin(){return stack.getBoundingClientRect().left+parseFloat(getComputedStyle(stack).paddingLeft);}
+    function snappedLevel(x,offset){return Math.max(1,Math.min(8,Math.round((x-offset-codeOrigin())/indentStep())));}
     function escapeHTML(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
     var pythonTokens=/(#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:def|return|if|else|elif|for|while|in|not|and|or|pass|import|from|as|break|continue)\b|\b(?:True|False|None)\b|\b(?:set|range|len|print|enumerate|max|min|list|dict)\b|\b\d+\b)/g;
     function colorize(src){
@@ -178,8 +186,9 @@
       placed.forEach(function(id,i){
         var piece=pieceById(id),line=document.createElement("div");
         line.className="assembled-line code-font";line.dataset.id=id;line.setAttribute("role","listitem");
-        line.setAttribute("tabindex","0");line.setAttribute("aria-label","Python line "+(i+1)+": "+piece.text.trim()+". Drag to reorder, right click or press Delete to return to bank.");
-        var content=document.createElement("span");content.className="code-text";content.innerHTML=colorize(piece.text);
+        line.style.marginLeft=(4*indentLevel(id))+"ch";
+        line.setAttribute("tabindex","0");line.setAttribute("aria-label","Python line "+(i+1)+": "+piece.text.trim()+". Drag to reorder and adjust indentation, right click or press Delete to return to bank.");
+        var content=document.createElement("span");content.className="code-text";content.innerHTML=colorize(piece.text.trimStart());
         line.appendChild(content);
         line.addEventListener("pointerdown",function(e){prepareDrag(e,"editor",id);});
         line.addEventListener("contextmenu",function(e){e.preventDefault();cancelDrag();returnPiece(id);});
@@ -210,20 +219,20 @@
       });
     }
     function focusPiece(id){var line=board.querySelector('[data-id="'+id+'"]');if(line)line.focus();}
-    function movePiece(id,index){
+    function movePiece(id,index,level){
       var had=placed.includes(id),rest=placed.filter(function(p){return p!==id;});
       if(!had&&rest.length===placed.length&& !pieces.some(function(p){return p.id===id;}))return;
       rest.splice(Math.max(0,Math.min(index,rest.length)),0,id);
-      placed=rest;renderBoard();setFeedback("","");
+      placed=rest;if(level!==undefined)indents[id]=level;renderBoard();setFeedback("","");
     }
     function returnPiece(id){
       if(!placed.includes(id))return;
-      placed=placed.filter(function(p){return p!==id;});renderBoard();setFeedback("","");
+      placed=placed.filter(function(p){return p!==id;});delete indents[id];renderBoard();setFeedback("","");
     }
     function resetPuzzle(){
       cancelDrag();
       if(runWorker){runWorker.terminate();runWorker=null;clearTimeout(timeout);runId++;$("run-btn").disabled=false;$("run-btn").textContent="▶ Run Code";}
-      placed=[];renderBoard();setFeedback("All pieces returned to the bank.","");
+      placed=[];indents={};renderBoard();setFeedback("All pieces returned to the bank.","");
     }
     function over(element,x,y){
       var r=element.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
@@ -233,19 +242,30 @@
       var index=0;for(var i=0;i<rows.length;i++){var r=rows[i].getBoundingClientRect();if(y>=r.top+r.height/2)index++;}
       return index;
     }
+    function hideGuides(){
+      guide.style.display="none";indentGuide.style.display="none";area.classList.remove("drag-over");
+    }
     function showGuide(y,source,id){
-      if(!over(area,active.x,active.y)){guide.style.display="none";area.classList.remove("drag-over");return;}
+      if(!over(area,active.x,active.y)){hideGuides();return;}
       var index=insertIndex(y,source==="editor"?id:null);
       var rows=Array.from(board.children).filter(function(el){return Number(el.dataset.id)!==(source==="editor"?id:null);});
       var anchor=rows[index];
       var top=anchor?anchor.getBoundingClientRect().top:rows.length?rows[rows.length-1].getBoundingClientRect().bottom:fixed.getBoundingClientRect().bottom;
-      var r=area.getBoundingClientRect();
-      guide.style.top=(top-r.top+area.scrollTop)+"px";guide.style.display="block";
+      var rect=area.getBoundingClientRect();
+      var level=snappedLevel(active.x,active.grabOffset);
+      var targetX=codeOrigin()+level*indentStep();
+      /* Both guides intersect exactly at the snapped column and insertion row. */
+      guide.style.top=(top-rect.top+area.scrollTop)+"px";
+      guide.style.left=(targetX-rect.left+area.scrollLeft)+"px";
+      guide.style.right="10px";guide.style.display="block";
+      indentGuide.style.left=(targetX-rect.left+area.scrollLeft)+"px";
+      indentGuide.style.display="block";
       area.classList.add("drag-over");
     }
     function updateGhost(){
       if(!active||!active.started)return;
-      ghost.style.left=(active.x+13)+"px";ghost.style.top=(active.y-12)+"px";
+      ghost.style.left=(active.x-active.grabOffset)+"px";
+      ghost.style.top=(active.y-12)+"px";
       showGuide(active.y,active.source,active.id);
     }
     function dragAutoscroll(){
@@ -258,7 +278,7 @@
     function beginDrag(){
       if(!active||active.started)return;
       active.started=true;ghost=document.createElement("div");ghost.className="drag-ghost";
-      ghost.textContent=pieceById(active.id).text;document.body.appendChild(ghost);
+      ghost.textContent=pieceById(active.id).text.trimStart();document.body.appendChild(ghost);
       if(active.source==="editor"){var src=board.querySelector('[data-id="'+active.id+'"]');if(src)src.classList.add("drag-source");}
       updateGhost();scrollFrame=requestAnimationFrame(dragAutoscroll);
     }
@@ -267,12 +287,20 @@
       active=null;if(scrollFrame!==null){cancelAnimationFrame(scrollFrame);scrollFrame=null;}
       if(ghost){ghost.remove();ghost=null;}
       board.querySelectorAll(".drag-source").forEach(function(el){el.classList.remove("drag-source");});
-      guide.style.display="none";area.classList.remove("drag-over");
+      hideGuides();
     }
     function prepareDrag(e,source,id){
       if(e.button!==0||e.isPrimary===false||active)return;
       if(e.pointerType==="mouse")e.preventDefault();
-      active={pointerId:e.pointerId,source:source,id:id,pointerType:e.pointerType,
+      var grabOffset;
+      if(source==="editor"){grabOffset=e.clientX-e.currentTarget.getBoundingClientRect().left;}
+      else{
+        var label=e.currentTarget.querySelector(".piece-code");
+        grabOffset=e.clientX-label.getBoundingClientRect().left-defaultIndent(id)*indentStep();
+      }
+      var width=pieceById(id).text.trimStart().length*(indentStep()/4);
+      grabOffset=Math.max(0,Math.min(width,grabOffset));
+      active={pointerId:e.pointerId,source:source,id:id,pointerType:e.pointerType,grabOffset:grabOffset,
         sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,started:false,timer:null};
       if(e.currentTarget.setPointerCapture)try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
       if(e.pointerType==="touch")active.timer=setTimeout(function(){beginDrag();},180);
@@ -292,9 +320,10 @@
       var snapshot=active,wasDragging=snapshot.started,x=e.clientX,y=e.clientY;
       var inEditor=over(area,x,y),inBank=over(bank,x,y);
       var index=inEditor?insertIndex(y,snapshot.source==="editor"?snapshot.id:null):null;
+      var level=inEditor?snappedLevel(x,snapshot.grabOffset):null;
       cancelDrag();
       if(!wasDragging)return;
-      if(inEditor)movePiece(snapshot.id,index);
+      if(inEditor)movePiece(snapshot.id,index,level);
       else if(snapshot.source==="editor"&&inBank)returnPiece(snapshot.id);
     });
     window.addEventListener("pointercancel",function(e){if(active&&e.pointerId===active.pointerId)cancelDrag();});
@@ -313,6 +342,7 @@
     $("reset-btn").addEventListener("click",resetPuzzle);
     $("swap-btn").addEventListener("click",function(){app.classList.toggle("swapped");});
     renderBoard();
+    var pendingImage=null, pendingURL=null;
     var imageInput=$("image-input"),attachments=$("attachments");
     $("attach-btn").addEventListener("click",function(){imageInput.click();});
     imageInput.addEventListener("change",function(){
@@ -370,7 +400,7 @@
       worker.postMessage({id:id,code:editor.value,fn:"contains_duplicate",tests:tests.map(function(t){return {args:t.args};})});
     }
     $("run-btn").addEventListener("click",runCode);
-    renderBank();repaint();
+
   })();
   </script>
 </body>
