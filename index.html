@@ -211,7 +211,7 @@
         var btn=document.createElement("button");btn.type="button";btn.className="piece";
         btn.setAttribute("aria-label","Drag "+piece.text.trim()+" into the editor");
         var grip=document.createElement("span");grip.className="grip";grip.textContent="⋮⋮";grip.setAttribute("aria-hidden","true");
-        var label=document.createElement("span");label.className="piece-code";label.textContent=piece.text;
+        var label=document.createElement("span");label.className="piece-code";label.textContent=piece.text.trimStart();
         btn.append(grip,label);
         btn.addEventListener("pointerdown",function(e){prepareDrag(e,"bank",piece.id);});
         // Placement requires a drag (mouse) or touch-and-hold drag (mobile).
@@ -296,7 +296,7 @@
       if(source==="editor"){grabOffset=e.clientX-e.currentTarget.getBoundingClientRect().left;}
       else{
         var label=e.currentTarget.querySelector(".piece-code");
-        grabOffset=e.clientX-label.getBoundingClientRect().left-defaultIndent(id)*indentStep();
+        grabOffset=e.clientX-label.getBoundingClientRect().left;
       }
       var width=pieceById(id).text.trimStart().length*(indentStep()/4);
       grabOffset=Math.max(0,Math.min(width,grabOffset));
