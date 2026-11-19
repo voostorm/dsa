@@ -88,7 +88,7 @@
 <body>
   <main class="app" id="app">
     <section class="pane chat-pane" aria-label="Chat">
-      <header class="pane-header"><span class="heading">Chat</span><span class="connection">AI not connected</span></header>
+      <header class="pane-header"><span class="heading">Chat</span></header>
       <div class="chat-log" id="chat-log" aria-live="polite">
         <div class="chat-empty" id="chat-empty">
           <div class="mark">{ }</div>
@@ -108,7 +108,7 @@
       </div>
     </section>
     <section class="pane work-pane" aria-label="Python workspace">
-      <header class="pane-header"><span class="heading">Python editor</span><span class="muted">Python 3</span></header>
+      <header class="pane-header"><span class="heading">Python Editor</span><span class="muted">Python 3</span></header>
       <div class="work-scroll" id="work-scroll">
         <div class="editor-shell">
           <div class="editor-top">
@@ -127,7 +127,7 @@
         </div>
         <div class="feedback" id="feedback" role="status" aria-live="polite">Drag a line into the editor to build the solution.</div>
         <section class="bank" aria-label="Puzzle pieces">
-          <div class="bank-heading"><h2>Puzzle pieces</h2><span class="bank-count" id="bank-count"></span></div>
+          <div class="bank-heading"><h2>Puzzle Pieces</h2></div>
           <div class="pieces" id="pieces"></div>
         </section>
       </div>
@@ -138,7 +138,7 @@
   (function(){
     "use strict";
     var $ = function(id){return document.getElementById(id);};
-    var app=$("app"), area=$("editor-area"), bank=$("pieces"), count=$("bank-count");
+    var app=$("app"), area=$("editor-area"), bank=$("pieces");
     var fixed=$("fixed-line"), board=$("assembled-lines"), landing=$("editor-landing"), guide=$("drop-guide"), indentGuide=$("indent-guide"), stack=$("code-stack");
     var feedback=$("feedback"), workScroll=$("work-scroll");
     var signature="def contains_duplicate(nums):";
@@ -203,10 +203,6 @@
       landing.classList.toggle("has-lines",placed.length>0);
       bank.replaceChildren();
       var remaining=pieces.filter(function(p){return !placed.includes(p.id);});
-      count.textContent=remaining.length+" remaining";
-      if(!remaining.length){
-        var empty=document.createElement("span");empty.className="bank-empty";empty.textContent="All lines placed.";bank.appendChild(empty);
-      }
       remaining.forEach(function(piece){
         var btn=document.createElement("button");btn.type="button";btn.className="piece";
         btn.setAttribute("aria-label","Drag "+piece.text.trim()+" into the editor");
