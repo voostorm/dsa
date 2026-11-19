@@ -2,77 +2,277 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#0a1020">
-  <meta name="description" content="Learn to solve unseen DSA interview problems by reconstructing, testing and writing Python solutions.">
-  <title>DSA Puzzle Lab · Learn by building</title>
-  <link rel="stylesheet" href="./game/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fa">
+  <meta name="description" content="A minimal Python reconstruction puzzle with chat and a runnable editor.">
+  <title>DSA Puzzle</title>
+  <style>
+    :root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#202b3a;background:#f8fafc;font-synthesis:none}
+    *{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden}button,textarea{font:inherit}button{cursor:pointer}
+    .app{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);height:100dvh;width:100%;isolation:isolate}
+    .app:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:1px;background:#e3e8ef;z-index:2;pointer-events:none}
+    .pane{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+    .chat-pane{background:#fcfcfd;order:1}.work-pane{background:#f6f8fb;order:2}
+    .app.swapped .chat-pane{order:2}.app.swapped .work-pane{order:1}
+    .pane-header{height:68px;min-height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;gap:12px}
+    .heading{font-weight:650;font-size:15px;letter-spacing:-.025em}.muted{color:#8a96a8;font-size:12px}
+    .connection{display:flex;align-items:center;gap:7px;color:#97a0ad;font-size:12px}
+    .connection:before{content:"";width:6px;height:6px;border-radius:50%;background:#c6ccd5}
+    .swap-btn{position:absolute;top:20px;left:50%;transform:translateX(-50%);width:36px;height:36px;z-index:4;display:grid;place-items:center;background:#fff;color:#64748b;border:1px solid #dbe2ea;border-radius:12px;box-shadow:0 3px 12px #16294a12;font-size:19px;line-height:1;transition:background .15s,transform .15s}
+    .swap-btn:hover{background:#eef3fb;transform:translateX(-50%) scale(1.06)}.swap-btn:focus-visible,.piece:focus-visible,.icon-btn:focus-visible,.run-btn:focus-visible{outline:3px solid #9abefa;outline-offset:3px}
+    .chat-log{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;padding:24px 32px 18px;gap:16px}
+    .chat-empty{margin:auto;text-align:center;color:#667489;max-width:310px;padding-bottom:24px}
+    .chat-empty .mark{margin:0 auto 20px;width:48px;height:48px;display:grid;place-items:center;border-radius:15px;background:#edf2f9;color:#5877a6;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:20px}
+    .chat-empty h1{font-size:21px;line-height:1.3;color:#293548;letter-spacing:-.04em;font-weight:650;margin:0 0 9px}.chat-empty p{margin:0;font-size:13px;line-height:1.65;color:#98a2af}
+    .message{max-width:87%;align-self:flex-end;border-radius:15px 15px 4px 15px;background:#eaf0f9;padding:12px 15px;color:#26364a;font-size:13px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+    .message img{display:block;width:100%;max-width:310px;max-height:250px;object-fit:contain;border-radius:9px;margin-top:8px}
+    .message img:first-child{margin-top:0}.chat-note{align-self:center;text-align:center;color:#98a3b1;font-size:12px;line-height:1.5;max-width:300px;margin-top:5px}
+    .composer-wrap{padding:0 26px 24px}.composer{border:1px solid #e0e5ed;background:#fff;border-radius:16px;box-shadow:0 4px 24px #1d314a08;padding:10px}
+    .composer textarea{resize:none;border:0;outline:0;background:transparent;width:100%;padding:8px 10px;min-height:64px;max-height:180px;line-height:1.6;font-size:13px;color:#263344}
+    .composer textarea::placeholder{color:#a5afbd}.composer-actions{display:flex;justify-content:space-between;align-items:center;padding:0 3px 1px}
+    .icon-btn{display:grid;place-items:center;border:0;background:transparent;color:#718096;width:34px;height:34px;border-radius:10px;font-size:19px}
+    .icon-btn:hover{background:#f1f4f8}.send-btn{background:#364d72;color:white;border-radius:11px}.send-btn:hover{background:#2a4163}
+    .attachments{display:flex;align-items:center;gap:8px;margin:0 4px 6px;font-size:12px;color:#6c7887}
+    .attachment-thumb{width:32px;height:32px;object-fit:cover;border-radius:6px;border:1px solid #e0e6ef}.attachment-name{overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:200px}
+    .remove-attachment{border:0;background:#eff2f6;color:#738196;width:23px;height:23px;border-radius:8px}
+    .work-scroll{overflow-y:auto;min-height:0;flex:1;padding:8px 32px 30px}
+    .editor-shell{border-radius:15px;overflow:hidden;border:1px solid #26364c;background:#121c2b;box-shadow:0 16px 36px #1c304618}
+    .editor-top{height:53px;border-bottom:1px solid #283449;display:flex;align-items:center;justify-content:space-between;padding:0 17px 0 22px;color:#9eafc7;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:12px}
+    .editor-title{display:flex;align-items:center;gap:9px}.file-dot{width:7px;height:7px;border-radius:50%;background:#88b9e8}
+    .run-btn{border:0;display:flex;align-items:center;gap:8px;background:#c4f0d9;color:#173d2b;border-radius:9px;padding:9px 13px;font-family:inherit;font-size:12px;font-weight:700}
+    .run-btn:hover{background:#a6e7c5}.run-btn:disabled{opacity:.7;cursor:wait}
+    .editor-area{height:clamp(300px,47vh,620px);min-height:260px;position:relative;background:#121c2b}
+    .code-font{font:13.5px/26px ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;tab-size:4;letter-spacing:0}
+    .highlight,.editor-input{position:absolute;inset:0;margin:0;padding:21px 23px;border:0;width:100%;height:100%;white-space:pre;overflow:auto}
+    .highlight{pointer-events:none;color:#dce6f5;scrollbar-width:none}.highlight::-webkit-scrollbar{display:none}
+    .editor-input{z-index:1;resize:none;background:transparent;outline:none;color:transparent;-webkit-text-fill-color:transparent;caret-color:#f8fbff;overflow-wrap:normal}
+    .editor-input::selection{background:#647da67a}.editor-area.drag-over{background:#192b42}
+    .editor-area.drag-over:after{content:"Drop to insert line";position:absolute;right:18px;bottom:16px;border-radius:8px;background:#35557c;color:#e9f2ff;font-size:11px;padding:7px 10px;z-index:3;pointer-events:none}
+    .drop-guide{position:absolute;left:23px;right:23px;height:2px;background:#8bd9f7;box-shadow:0 0 8px #8bd9f7a0;z-index:3;pointer-events:none;display:none}
+    .token-keyword{color:#b9a1fd}.token-constant{color:#f6b973}.token-function{color:#86d6ef}.token-string{color:#a7dbaf}.token-comment{color:#667c98}.token-number{color:#e5bc7d}
+    .feedback{min-height:24px;margin:16px 2px 5px;color:#768397;font-size:12px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+    .feedback.success{color:#1b825a}.feedback.failure{color:#ba5360}.feedback.loading{color:#54769a}
+    .bank{margin-top:24px}.bank-heading{display:flex;align-items:baseline;gap:10px;justify-content:space-between;margin-bottom:14px}
+    .bank-heading h2{font-size:14px;font-weight:650;letter-spacing:-.02em;margin:0;color:#304159}.bank-count{font-size:11px;color:#98a3b2}
+    .pieces{display:flex;flex-direction:column;align-items:flex-start;gap:9px;min-height:16px}
+    .piece{width:auto;max-width:100%;display:flex;align-items:center;text-align:left;gap:12px;border:1px solid #e1e7ef;background:#fff;color:#3b536f;border-radius:9px;padding:10px 13px;font:13px/22px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:0 2px 6px #1e2f4610;cursor:grab;transition:border-color .1s,box-shadow .1s;touch-action:manipulation}
+    .piece:hover{border-color:#95b1d2;box-shadow:0 3px 10px #1e2f4618}.piece:active{cursor:grabbing}.piece.dragging{opacity:.35}
+    .grip{color:#b4becc;font-size:16px;letter-spacing:-5px;flex:0 0 15px}.piece-code{white-space:pre;overflow-x:auto;scrollbar-width:thin;min-width:0}
+    .bank-empty{font-size:12px;color:#9aa6b5;padding:8px 0}
+    @media(max-width:750px){.app{grid-template-columns:minmax(0,1fr);grid-template-rows:1fr 1fr}.app:before{top:50%;bottom:auto;left:0;right:0;width:auto;height:1px}.pane{min-height:0}.chat-pane{order:1}.work-pane{order:2}.app.swapped .chat-pane{order:2}.app.swapped .work-pane{order:1}.swap-btn{top:50%;left:50%;transform:translate(-50%,-50%);font-size:17px}.swap-btn:hover{transform:translate(-50%,-50%) scale(1.06)}.pane-header{height:52px;min-height:52px;padding:0 19px}.chat-log{padding:12px 18px}.chat-empty{padding:12px 0}.composer-wrap{padding:0 15px 13px}.composer textarea{min-height:42px}.work-scroll{padding:6px 17px 20px}.editor-area{height:260px}.connection{font-size:10px}}
+    @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+  </style>
 </head>
 <body>
-  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
-  <header class="topbar">
-    <a href="./" class="brand" aria-label="DSA Puzzle Lab homepage"><span class="brand-icon">⌘</span><span>DSA<span class="brand-light"> / PUZZLE LAB</span></span></a>
-    <nav class="topnav"><a class="nav-current" href="./">Puzzle studio</a><a href="./reference-library.html">Original study library ↗</a><a href="https://github.com/voostorm/dsa" target="_blank" rel="noopener">GitHub ↗</a></nav>
-    <div class="save-indicator"><span class="save-dot"></span> Progress saved locally</div>
-  </header>
-  <div class="shell">
-    <section class="intro">
-      <div class="eyebrow"><span class="eyebrow-dot"></span> INTERACTIVE PYTHON PRACTICE <span class="eyebrow-separator">/</span> FIRST PLAYABLE BUILD</div>
-      <h1>Don't memorize the answer.<br><span>Build your way to it.</span></h1>
-      <p>One problem. Scrambled pieces. Real Python tests. Less help each round, until you can write it on your own.</p>
-    </section>
-    <div class="metrics" aria-label="Your progress">
-      <div class="metric"><div class="metric-label">SKILLS IN STUDIO</div><div class="metric-value" id="metric-problems">05 <span class="metric-small">problems</span></div></div>
-      <div class="metric"><div class="metric-label">MODES COMPLETED</div><div class="metric-value" id="metric-completed">00 <span class="metric-small">/ 35</span></div></div>
-      <div class="metric"><div class="metric-label">FULL-CODE WINS</div><div class="metric-value" id="metric-mastered">00 <span class="metric-small">mastered</span></div></div>
-      <div class="metric metric-message"><div class="metric-label">YOUR NORTH STAR</div><strong>Unseen problem → independent solution</strong><span>Not a score based on memorizing a layout.</span></div>
-    </div>
-    <main class="studio" id="studio">
-      <aside class="panel problem-panel" aria-label="Problem and challenge">
-        <div class="panel-top"><span class="step-label">01 / THE CHALLENGE</span><span class="tiny-pill">FOCUS MODE</span></div>
-        <label class="field-label" for="problem-select">CHOOSE A PROBLEM</label>
-        <div class="select-wrap"><select id="problem-select" aria-label="Select a problem"></select></div>
-        <div class="problem-meta"><span class="tag" id="problem-topic">Arrays & Hashing</span><span class="tag tag-green" id="problem-difficulty">Easy</span></div>
-        <h2 id="problem-title">Contains Duplicate</h2>
-        <div class="problem-statement" id="problem-statement"></div>
-        <div class="example-box"><div class="example-heading">EXAMPLE</div><pre id="problem-example"></pre></div>
-        <div class="goal-box"><span class="goal-icon">◎</span><div><strong>Your goal</strong><p>Understand each step. Then write the solution from a blank editor.</p></div></div>
-        <div class="side-footer">Your original <a href="./reference-library.html">DSA study pages</a> are still here.</div>
-      </aside>
-      <section class="panel work-panel" aria-label="Puzzle workspace">
-        <div class="panel-top"><span class="step-label">02 / RECONSTRUCT</span><span id="session-status" class="work-status">● IN PROGRESS</span></div>
-        <div class="work-heading"><div><h2>Build the solution</h2><p>Choose how much of the algorithm you want to reconstruct.</p></div><div class="mode-count" id="mode-count">MODE 3 / 7</div></div>
-        <label class="field-label" for="mode-select">PUZZLE DIFFICULTY</label>
-        <div class="mode-row"><select id="mode-select">
-          <option value="0">01 · Understand the prompt</option><option value="1">02 · Plan the approach</option>
-          <option value="2" selected>03 · Arrange logical blocks</option><option value="3">04 · Arrange Python lines</option>
-          <option value="4">05 · Arrange fine fragments</option><option value="5">06 · Write missing lines</option>
-          <option value="6">07 · Code from scratch</option>
-        </select><button class="btn btn-soft" id="scramble-btn" title="Get a fresh random arrangement">⤨ Rescramble</button></div>
-        <p id="mode-description" class="mode-description">Move pieces into a working algorithm. They are deliberately out of order.</p>
-        <div id="pieces-view">
-          <div class="zone-heading"><div><span class="zone-icon">▦</span> PIECE BANK <span class="zone-count" id="bank-count"></span></div><span>Click a piece to place it ↓</span></div>
-          <div class="piece-bank" id="piece-bank" aria-label="Scrambled pieces"></div>
-          <div class="zone-heading zone-heading-assembly"><div><span class="zone-icon">⌑</span> YOUR ASSEMBLY <span class="zone-count" id="placed-count"></span></div><span>Drag to reorder, or use ↑ ↓</span></div>
-          <div class="assembly" id="assembly" aria-label="Solution assembly"></div>
+  <main class="app" id="app">
+    <section class="pane chat-pane" aria-label="Chat">
+      <header class="pane-header"><span class="heading">Chat</span><span class="connection">AI not connected</span></header>
+      <div class="chat-log" id="chat-log" aria-live="polite">
+        <div class="chat-empty" id="chat-empty">
+          <div class="mark">{ }</div>
+          <h1>What are we solving?</h1>
+          <p>Ask a question, paste a problem, or attach a screenshot.</p>
         </div>
-        <div id="editor-view" hidden><div class="editor-top"><span>solution.py</span><span>PYTHON 3</span></div><textarea id="code-editor" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Python editor"></textarea></div>
-        <div class="code-section"><div class="code-heading"><span>⌘ LIVE CODE PREVIEW</span><span class="muted">Your assembled code, not the answer</span></div><pre id="code-preview" class="code-preview"></pre></div>
-        <div class="action-row"><button id="run-btn" class="btn btn-primary"><span>▶</span> Run Python tests</button><button id="hint-btn" class="btn btn-soft">✦ Give me a hint</button><button id="next-mode-btn" class="btn btn-outline">Level up →</button></div>
-        <div class="shortcut-hint">Run your assembly to discover what's wrong. Tests run locally in your browser using Pyodide.</div>
-      </section>
-      <aside class="panel feedback-panel" aria-label="Test results and coaching">
-        <div class="panel-top"><span class="step-label">03 / LEARN & ITERATE</span><span class="tiny-pill">NO SPOILERS</span></div>
-        <h2>Feedback studio</h2><p class="subtle">Failures are clues, not penalties.</p>
-        <div id="results"><div class="empty-feedback"><span class="feedback-graphic">⌁</span><strong>Your next discovery starts here</strong><p>Arrange the pieces and run your first test. You'll see what works, what fails, and why.</p></div></div>
-        <div class="coach-box"><div class="coach-heading"><span class="coach-symbol">✧</span> GUIDED COACH <span class="coach-label">NON-REVEALING</span></div><p id="coach-message">If you get stuck, ask for a hint. I'll help you think about the problem—not tell you where to place a piece.</p></div>
-        <div class="progress-box"><div class="progress-top"><strong>This problem</strong><span id="progress-number">0 / 7</span></div><div class="progress-bar"><span id="progress-fill"></span></div><p>Each mode you solve is practice. A fresh blank-editor solve is the strongest proof of mastery.</p></div>
-        <div class="privacy-note">◇ This prototype uses verified built-in problems and local guidance. AI-generated arbitrary problems and private server-side solutions are future work—not active features.</div>
-      </aside>
-    </main>
-    <footer>DSA PUZZLE LAB <span>·</span> Think → Assemble → Test → Explain → Write from scratch <span>·</span> <a href="https://github.com/voostorm/dsa">OPEN SOURCE</a></footer>
-  </div>
-  <script src="./game/problems.js"></script>
-  <script src="./game/app.js"></script>
+      </div>
+      <div class="composer-wrap">
+        <form class="composer" id="chat-form">
+          <div class="attachments" id="attachments" hidden></div>
+          <textarea id="chat-input" rows="2" placeholder="Message…" aria-label="Chat message"></textarea>
+          <div class="composer-actions">
+            <div><button type="button" class="icon-btn" id="attach-btn" aria-label="Attach an image" title="Attach an image">＋</button><input id="image-input" type="file" accept="image/*" hidden></div>
+            <button class="icon-btn send-btn" type="submit" aria-label="Send message" title="Send message">↑</button>
+          </div>
+        </form>
+      </div>
+    </section>
+    <section class="pane work-pane" aria-label="Python workspace">
+      <header class="pane-header"><span class="heading">Python editor</span><span class="muted">Python 3</span></header>
+      <div class="work-scroll">
+        <div class="editor-shell">
+          <div class="editor-top">
+            <span class="editor-title"><span class="file-dot"></span>solution.py</span>
+            <button class="run-btn" id="run-btn" type="button"><span aria-hidden="true">▶</span> Run Code</button>
+          </div>
+          <div class="editor-area" id="editor-area">
+            <pre class="highlight code-font" id="highlight" aria-hidden="true"></pre>
+            <textarea class="editor-input code-font" id="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Editable Python code"></textarea>
+            <div class="drop-guide" id="drop-guide" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="feedback" id="feedback" role="status" aria-live="polite">Drag a line into the editor or type directly.</div>
+        <section class="bank" aria-label="Puzzle pieces">
+          <div class="bank-heading"><h2>Puzzle pieces</h2><span class="bank-count" id="bank-count"></span></div>
+          <div class="pieces" id="pieces"></div>
+        </section>
+      </div>
+    </section>
+    <button class="swap-btn" id="swap-btn" type="button" aria-label="Swap chat and editor sides" title="Swap sides">⇄</button>
+  </main>
+  <script>
+  (function(){
+    "use strict";
+    var $ = function(id){return document.getElementById(id);};
+    var app=$("app"), editor=$("code-editor"), high=$("highlight"), area=$("editor-area");
+    var feedback=$("feedback"), bank=$("pieces"), count=$("bank-count"), guide=$("drop-guide");
+    var signature="def contains_duplicate(nums):";
+    var initialLines=[
+      "        if num in seen:",
+      "    return False",
+      "        seen.add(num)",
+      "    for num in nums:",
+      "            return True",
+      "    seen = set()"
+    ];
+    var pieces=initialLines.map(function(line,i){return {id:i,text:line};});
+    var remaining=pieces.slice(), dragged=null, pendingImage=null, pendingURL=null, runWorker=null, timeout=null, runId=0;
+    var tests=[
+      {args:[[1,2,3,1]],expected:true},
+      {args:[[1,2,3,4]],expected:false},
+      {args:[[]],expected:false},
+      {args:[[5,5]],expected:true},
+      {args:[[-1,0,-1]],expected:true},
+      {args:[[0]],expected:false}
+    ];
+    editor.value=signature+"\n";
+    function escapeHTML(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+    var pythonTokens=/(#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:def|return|if|else|elif|for|while|in|not|and|or|pass|import|from|as|break|continue)\b|\b(?:True|False|None)\b|\b(?:set|range|len|print|enumerate|max|min|list|dict)\b|\b\d+\b)/g;
+    function colorize(src){
+      var out="",pos=0,match;
+      pythonTokens.lastIndex=0;
+      while((match=pythonTokens.exec(src))!==null){
+        out+=escapeHTML(src.slice(pos,match.index));
+        var token=match[0],kind=token[0]==="#"?"comment":token[0]==="'"||token[0]==='"'?"string":/^\d/.test(token)?"number":/^(True|False|None)$/.test(token)?"constant":/^(set|range|len|print|enumerate|max|min|list|dict)$/.test(token)?"function":"keyword";
+        out+='<span class="token-'+kind+'">'+escapeHTML(token)+'</span>';
+        pos=match.index+token.length;
+      }
+      return out+escapeHTML(src.slice(pos))+"\n";
+    }
+    function repaint(){high.innerHTML=colorize(editor.value);high.scrollTop=editor.scrollTop;high.scrollLeft=editor.scrollLeft;}
+    function setFeedback(message,kind){feedback.textContent=message;feedback.className="feedback"+(kind?" "+kind:"");}
+    function changed(){repaint();if(!runWorker)setFeedback("","");}
+    editor.addEventListener("input",changed);
+    editor.addEventListener("scroll",function(){high.scrollTop=editor.scrollTop;high.scrollLeft=editor.scrollLeft;});
+    editor.addEventListener("keydown",function(e){
+      if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();runCode();return;}
+      if(e.key==="Tab"){e.preventDefault();editor.setRangeText("    ",editor.selectionStart,editor.selectionEnd,"end");changed();return;}
+      if(e.key==="Enter"){
+        e.preventDefault();
+        var before=editor.value.slice(0,editor.selectionStart),line=before.slice(before.lastIndexOf("\n")+1);
+        var indent=(line.match(/^\s*/)||[""])[0]+(/:\s*$/.test(line)?"    ":"");
+        editor.setRangeText("\n"+indent,editor.selectionStart,editor.selectionEnd,"end");changed();
+      }
+    });
+    function renderBank(){
+      bank.replaceChildren();
+      count.textContent=remaining.length+" remaining";
+      if(!remaining.length){var done=document.createElement("span");done.className="bank-empty";done.textContent="All lines moved to the editor.";bank.appendChild(done);return;}
+      remaining.forEach(function(piece){
+        var btn=document.createElement("button");btn.type="button";btn.className="piece";btn.draggable=true;btn.dataset.id=piece.id;
+        btn.title="Drag to the editor, or click to insert at the cursor";
+        var grip=document.createElement("span");grip.className="grip";grip.textContent="⋮⋮";grip.setAttribute("aria-hidden","true");
+        var label=document.createElement("span");label.className="piece-code";label.textContent=piece.text;
+        btn.append(grip,label);
+        btn.addEventListener("dragstart",function(e){
+          dragged=piece.id;e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain","puzzle-piece-"+piece.id);btn.classList.add("dragging");
+        });
+        btn.addEventListener("dragend",function(){dragged=null;btn.classList.remove("dragging");area.classList.remove("drag-over");guide.style.display="none";});
+        btn.addEventListener("click",function(){
+          var idx=editor.value.slice(0,editor.selectionStart).split("\n").length;
+          insertPiece(piece.id,Math.max(1,idx));
+        });
+        bank.appendChild(btn);
+      });
+    }
+    function insertPiece(id,index){
+      var match=remaining.find(function(p){return p.id===id;});if(!match)return;
+      var lines=editor.value.split("\n");index=Math.max(1,Math.min(index,lines.length));
+      if(index===lines.length-1&&lines[index]===""){lines[index]=match.text;}else{lines.splice(index,0,match.text);}
+      editor.value=lines.join("\n");
+      remaining=remaining.filter(function(p){return p.id!==id;});
+      renderBank();repaint();setFeedback("","");
+      var cursor=lines.slice(0,index+1).join("\n").length;
+      editor.focus();editor.setSelectionRange(cursor,cursor);
+    }
+    function lineAtPointer(e){
+      var rect=editor.getBoundingClientRect();
+      var pixel=e.clientY-rect.top+editor.scrollTop-21;
+      var row=Math.round(pixel/26);
+      return Math.max(1,Math.min(editor.value.split("\n").length,row));
+    }
+    area.addEventListener("dragover",function(e){
+      if(dragged===null)return;e.preventDefault();e.dataTransfer.dropEffect="move";area.classList.add("drag-over");
+      var row=lineAtPointer(e);
+      var y=21+(row*26)-editor.scrollTop;
+      guide.style.top=Math.max(3,Math.min(area.clientHeight-3,y))+"px";guide.style.display="block";
+    });
+    area.addEventListener("dragleave",function(e){
+      if(!area.contains(e.relatedTarget)){area.classList.remove("drag-over");guide.style.display="none";}
+    });
+    area.addEventListener("drop",function(e){
+      if(dragged===null)return;e.preventDefault();
+      var index=lineAtPointer(e),id=dragged;dragged=null;
+      area.classList.remove("drag-over");guide.style.display="none";insertPiece(id,index);
+    });
+    $("swap-btn").addEventListener("click",function(){app.classList.toggle("swapped");});
+    var imageInput=$("image-input"),attachments=$("attachments");
+    $("attach-btn").addEventListener("click",function(){imageInput.click();});
+    imageInput.addEventListener("change",function(){
+      var file=imageInput.files&&imageInput.files[0];if(!file)return;
+      if(!file.type.startsWith("image/")){setFeedback("Please choose an image file.","failure");return;}
+      if(pendingURL)URL.revokeObjectURL(pendingURL);
+      pendingImage=file;pendingURL=URL.createObjectURL(file);
+      attachments.hidden=false;attachments.replaceChildren();
+      var thumb=document.createElement("img");thumb.src=pendingURL;thumb.alt="Attached image";thumb.className="attachment-thumb";
+      var name=document.createElement("span");name.className="attachment-name";name.textContent=file.name;
+      var remove=document.createElement("button");remove.type="button";remove.className="remove-attachment";remove.textContent="×";remove.setAttribute("aria-label","Remove image");
+      remove.addEventListener("click",function(){clearAttachment();});
+      attachments.append(thumb,name,remove);
+    });
+    function clearAttachment(){pendingImage=null;pendingURL=null;imageInput.value="";attachments.replaceChildren();attachments.hidden=true;}
+    var input=$("chat-input"),chat=$("chat-log"),notified=false;
+    input.addEventListener("keydown",function(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();$("chat-form").requestSubmit();}});
+    $("chat-form").addEventListener("submit",function(e){
+      e.preventDefault();var text=input.value.trim();if(!text&&!pendingImage)return;
+      $("chat-empty")?.remove();
+      var bubble=document.createElement("div");bubble.className="message";
+      if(text){var body=document.createElement("div");body.textContent=text;bubble.appendChild(body);}
+      if(pendingImage){var photo=document.createElement("img");photo.src=pendingURL;photo.alt=pendingImage.name;bubble.appendChild(photo);}
+      chat.appendChild(bubble);input.value="";clearAttachment();
+      if(!notified){var note=document.createElement("p");note.className="chat-note";note.textContent="Chat is a placeholder. AI responses will work after the API is connected.";chat.appendChild(note);notified=true;}
+      chat.scrollTop=chat.scrollHeight;input.focus();
+    });
+    function runCode(){
+      if(runWorker)return;
+      var button=$("run-btn");button.disabled=true;button.textContent="Running…";setFeedback("Starting Python. The first run may download its runtime.","loading");
+      var id=++runId,worker;
+      try{worker=new Worker("./game/py-worker.js");}catch(err){button.disabled=false;button.textContent="▶ Run Code";setFeedback("Could not start Python. Open the app on GitHub Pages over HTTPS.","failure");return;}
+      runWorker=worker;
+      function finish(){
+        if(runWorker!==worker)return false;
+        clearTimeout(timeout);worker.terminate();runWorker=null;button.disabled=false;button.textContent="▶ Run Code";return true;
+      }
+      timeout=setTimeout(function(){if(finish())setFeedback("Execution timed out. Check for an infinite loop, or retry after the runtime loads.","failure");},60000);
+      worker.onerror=function(){if(finish())setFeedback("Python could not load. Check your connection and use the hosted HTTPS version.","failure");};
+      worker.onmessage=function(e){
+        if(e.data.id!==id||!finish())return;
+        if(!e.data.ok){setFeedback("Runtime error: "+e.data.error,"failure");return;}
+        var output=e.data.output;
+        if(output.error){setFeedback(output.error,"failure");return;}
+        var passed=0,firstFailure=null;
+        tests.forEach(function(test,i){
+          var got=output.results[i]||{value:null,error:"No result"};
+          var ok=!got.error&&JSON.stringify(got.value)===JSON.stringify(test.expected);
+          if(ok)passed++;
+          else if(!firstFailure)firstFailure="Input: "+JSON.stringify(test.args)+"\nExpected: "+JSON.stringify(test.expected)+"\nReceived: "+(got.error||JSON.stringify(got.value));
+        });
+        if(passed===tests.length)setFeedback("✓ All "+tests.length+" tests passed.","success");
+        else setFeedback(passed+"/"+tests.length+" tests passed.\n"+firstFailure,"failure");
+      };
+      worker.postMessage({id:id,code:editor.value,fn:"contains_duplicate",tests:tests.map(function(t){return {args:t.args};})});
+    }
+    $("run-btn").addEventListener("click",runCode);
+    renderBank();repaint();
+  })();
+  </script>
 </body>
 </html>
