@@ -61,6 +61,27 @@
     .bank-empty{font-size:12px;color:#9aa6b5;padding:8px 0}
     @media(max-width:750px){.app{grid-template-columns:minmax(0,1fr);grid-template-rows:1fr 1fr}.app:before{top:50%;bottom:auto;left:0;right:0;width:auto;height:1px}.pane{min-height:0}.chat-pane{order:1}.work-pane{order:2}.app.swapped .chat-pane{order:2}.app.swapped .work-pane{order:1}.swap-btn{top:50%;left:50%;transform:translate(-50%,-50%);font-size:17px}.swap-btn:hover{transform:translate(-50%,-50%) scale(1.06)}.pane-header{height:52px;min-height:52px;padding:0 19px}.chat-log{padding:12px 18px}.chat-empty{padding:12px 0}.composer-wrap{padding:0 15px 13px}.composer textarea{min-height:42px}.work-scroll{padding:6px 17px 20px}.editor-area{height:260px}.connection{font-size:10px}}
     @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+    /* Read-only reconstruction editor; pieces are movable on mouse and touch. */
+    .editor-actions{display:flex;align-items:center;gap:12px}
+    .reset-btn{font-size:12px;font-weight:600;color:#b3c1d3;border:0;border-radius:8px;background:transparent;padding:8px 5px}
+    .reset-btn:hover{color:#ecf3ff;background:#2b3c54}
+    .editor-area{overflow:auto;overscroll-behavior:contain;touch-action:pan-y}
+    .code-stack{padding:20px 23px;min-height:100%}
+    .fixed-line,.assembled-line{height:30px;line-height:30px;white-space:pre}
+    .fixed-line{color:#dce6f5;user-select:none}
+    .assembled-line{max-width:100%;width:max-content;min-width:185px;padding:0 8px 0 0;border-radius:6px;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none;color:#dce6f5}
+    .assembled-line:hover,.assembled-line:focus-visible{background:#25374e;outline:none}
+    .assembled-line:active{cursor:grabbing}
+    .assembled-line.drag-source{opacity:.27}
+    .assembled-line .code-text{display:inline-block;pointer-events:none}
+    .editor-landing{font:12px/30px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#536780;min-height:30px;user-select:none}
+    .editor-landing.has-lines{color:transparent}
+    .drop-guide{left:21px;right:21px;border-radius:2px;z-index:3}
+    .piece{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+    .drag-ghost{position:fixed;z-index:1000;pointer-events:none;padding:7px 12px;border:1px solid #9bb6d6;border-radius:8px;background:#f8fbff;color:#334e6d;font:13px/22px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;box-shadow:0 12px 30px #18283e30;max-width:85vw;overflow:hidden}
+    .reset-btn:focus-visible,.assembled-line:focus-visible{outline:2px solid #a9d6fd;outline-offset:1px}
+    @media(max-width:750px){.code-stack{padding:17px 16px}.assembled-line{min-width:145px}.editor-landing{font-size:11px}.editor-actions{gap:5px}.reset-btn{padding:7px 3px}}
   </style>
 </head>
 <body>
@@ -87,19 +108,22 @@
     </section>
     <section class="pane work-pane" aria-label="Python workspace">
       <header class="pane-header"><span class="heading">Python editor</span><span class="muted">Python 3</span></header>
-      <div class="work-scroll">
+      <div class="work-scroll" id="work-scroll">
         <div class="editor-shell">
           <div class="editor-top">
             <span class="editor-title"><span class="file-dot"></span>solution.py</span>
-            <button class="run-btn" id="run-btn" type="button"><span aria-hidden="true">▶</span> Run Code</button>
+            <div class="editor-actions"><button class="reset-btn" id="reset-btn" type="button" title="Return all lines to the puzzle bank">↺ Reset</button><button class="run-btn" id="run-btn" type="button"><span aria-hidden="true">▶</span> Run Code</button></div>
           </div>
-          <div class="editor-area" id="editor-area">
-            <pre class="highlight code-font" id="highlight" aria-hidden="true"></pre>
-            <textarea class="editor-input code-font" id="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="Editable Python code"></textarea>
+          <div class="editor-area" id="editor-area" aria-label="Read-only Python puzzle assembly">
+            <div class="code-stack" id="code-stack">
+              <div class="fixed-line code-font" id="fixed-line"></div>
+              <div class="assembled-lines" id="assembled-lines" role="list" aria-label="Placed Python lines"></div>
+              <div class="editor-landing" id="editor-landing">Drag code lines here</div>
+            </div>
             <div class="drop-guide" id="drop-guide" aria-hidden="true"></div>
           </div>
         </div>
-        <div class="feedback" id="feedback" role="status" aria-live="polite">Drag a line into the editor or type directly.</div>
+        <div class="feedback" id="feedback" role="status" aria-live="polite">Drag a line into the editor to build the solution.</div>
         <section class="bank" aria-label="Puzzle pieces">
           <div class="bank-heading"><h2>Puzzle pieces</h2><span class="bank-count" id="bank-count"></span></div>
           <div class="pieces" id="pieces"></div>
@@ -112,19 +136,20 @@
   (function(){
     "use strict";
     var $ = function(id){return document.getElementById(id);};
-    var app=$("app"), editor=$("code-editor"), high=$("highlight"), area=$("editor-area");
-    var feedback=$("feedback"), bank=$("pieces"), count=$("bank-count"), guide=$("drop-guide");
+    var app=$("app"), area=$("editor-area"), bank=$("pieces"), count=$("bank-count");
+    var fixed=$("fixed-line"), board=$("assembled-lines"), landing=$("editor-landing"), guide=$("drop-guide");
+    var feedback=$("feedback"), workScroll=$("work-scroll");
     var signature="def contains_duplicate(nums):";
-    var initialLines=[
-      "        if num in seen:",
-      "    return False",
-      "        seen.add(num)",
-      "    for num in nums:",
-      "            return True",
-      "    seen = set()"
+    var pieces=[
+      {id:0,text:"        if num in seen:"},
+      {id:1,text:"    return False"},
+      {id:2,text:"        seen.add(num)"},
+      {id:3,text:"    for num in nums:"},
+      {id:4,text:"            return True"},
+      {id:5,text:"    seen = set()"}
     ];
-    var pieces=initialLines.map(function(line,i){return {id:i,text:line};});
-    var remaining=pieces.slice(), dragged=null, pendingImage=null, pendingURL=null, runWorker=null, timeout=null, runId=0;
+    var placed=[], active=null, ghost=null, scrollFrame=null, firstTouchRow=null;
+    var runWorker=null, timeout=null, runId=0;
     var tests=[
       {args:[[1,2,3,1]],expected:true},
       {args:[[1,2,3,4]],expected:false},
@@ -133,7 +158,8 @@
       {args:[[-1,0,-1]],expected:true},
       {args:[[0]],expected:false}
     ];
-    editor.value=signature+"\n";
+    var editor={get value(){return signature+"\n"+placed.map(function(id){return pieceById(id).text;}).join("\n");}};
+    function pieceById(id){return pieces.find(function(p){return p.id===id;});}
     function escapeHTML(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
     var pythonTokens=/(#[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|\b(?:def|return|if|else|elif|for|while|in|not|and|or|pass|import|from|as|break|continue)\b|\b(?:True|False|None)\b|\b(?:set|range|len|print|enumerate|max|min|list|dict)\b|\b\d+\b)/g;
     function colorize(src){
@@ -142,78 +168,151 @@
       while((match=pythonTokens.exec(src))!==null){
         out+=escapeHTML(src.slice(pos,match.index));
         var token=match[0],kind=token[0]==="#"?"comment":token[0]==="'"||token[0]==='"'?"string":/^\d/.test(token)?"number":/^(True|False|None)$/.test(token)?"constant":/^(set|range|len|print|enumerate|max|min|list|dict)$/.test(token)?"function":"keyword";
-        out+='<span class="token-'+kind+'">'+escapeHTML(token)+'</span>';
-        pos=match.index+token.length;
+        out+='<span class="token-'+kind+'">'+escapeHTML(token)+'</span>';pos=match.index+token.length;
       }
-      return out+escapeHTML(src.slice(pos))+"\n";
+      return out+escapeHTML(src.slice(pos));
     }
-    function repaint(){high.innerHTML=colorize(editor.value);high.scrollTop=editor.scrollTop;high.scrollLeft=editor.scrollLeft;}
     function setFeedback(message,kind){feedback.textContent=message;feedback.className="feedback"+(kind?" "+kind:"");}
-    function changed(){repaint();if(!runWorker)setFeedback("","");}
-    editor.addEventListener("input",changed);
-    editor.addEventListener("scroll",function(){high.scrollTop=editor.scrollTop;high.scrollLeft=editor.scrollLeft;});
-    editor.addEventListener("keydown",function(e){
-      if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();runCode();return;}
-      if(e.key==="Tab"){e.preventDefault();editor.setRangeText("    ",editor.selectionStart,editor.selectionEnd,"end");changed();return;}
-      if(e.key==="Enter"){
-        e.preventDefault();
-        var before=editor.value.slice(0,editor.selectionStart),line=before.slice(before.lastIndexOf("\n")+1);
-        var indent=(line.match(/^\s*/)||[""])[0]+(/:\s*$/.test(line)?"    ":"");
-        editor.setRangeText("\n"+indent,editor.selectionStart,editor.selectionEnd,"end");changed();
-      }
-    });
-    function renderBank(){
+    function renderBoard(){
+      fixed.innerHTML=colorize(signature);board.replaceChildren();
+      placed.forEach(function(id,i){
+        var piece=pieceById(id),line=document.createElement("div");
+        line.className="assembled-line code-font";line.dataset.id=id;line.setAttribute("role","listitem");
+        line.setAttribute("tabindex","0");line.setAttribute("aria-label","Python line "+(i+1)+": "+piece.text.trim()+". Drag to reorder, right click or press Delete to return to bank.");
+        var content=document.createElement("span");content.className="code-text";content.innerHTML=colorize(piece.text);
+        line.appendChild(content);
+        line.addEventListener("pointerdown",function(e){prepareDrag(e,"editor",id);});
+        line.addEventListener("contextmenu",function(e){e.preventDefault();cancelDrag();returnPiece(id);});
+        line.addEventListener("keydown",function(e){
+          var index=placed.indexOf(id);
+          if(e.key==="Delete"||e.key==="Backspace"){e.preventDefault();returnPiece(id);}
+          else if(e.key==="ArrowUp"&&index>0){e.preventDefault();movePiece(id,index-1);focusPiece(id);}
+          else if(e.key==="ArrowDown"&&index<placed.length-1){e.preventDefault();movePiece(id,index+1);focusPiece(id);}
+        });
+        board.appendChild(line);
+      });
+      landing.classList.toggle("has-lines",placed.length>0);
       bank.replaceChildren();
+      var remaining=pieces.filter(function(p){return !placed.includes(p.id);});
       count.textContent=remaining.length+" remaining";
-      if(!remaining.length){var done=document.createElement("span");done.className="bank-empty";done.textContent="All lines moved to the editor.";bank.appendChild(done);return;}
+      if(!remaining.length){
+        var empty=document.createElement("span");empty.className="bank-empty";empty.textContent="All lines placed.";bank.appendChild(empty);
+      }
       remaining.forEach(function(piece){
-        var btn=document.createElement("button");btn.type="button";btn.className="piece";btn.draggable=true;btn.dataset.id=piece.id;
-        btn.title="Drag to the editor, or click to insert at the cursor";
+        var btn=document.createElement("button");btn.type="button";btn.className="piece";
+        btn.setAttribute("aria-label","Insert "+piece.text.trim()+" into editor");
         var grip=document.createElement("span");grip.className="grip";grip.textContent="⋮⋮";grip.setAttribute("aria-hidden","true");
         var label=document.createElement("span");label.className="piece-code";label.textContent=piece.text;
         btn.append(grip,label);
-        btn.addEventListener("dragstart",function(e){
-          dragged=piece.id;e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain","puzzle-piece-"+piece.id);btn.classList.add("dragging");
-        });
-        btn.addEventListener("dragend",function(){dragged=null;btn.classList.remove("dragging");area.classList.remove("drag-over");guide.style.display="none";});
-        btn.addEventListener("click",function(){
-          var idx=editor.value.slice(0,editor.selectionStart).split("\n").length;
-          insertPiece(piece.id,Math.max(1,idx));
-        });
+        btn.addEventListener("pointerdown",function(e){prepareDrag(e,"bank",piece.id);});
+        btn.addEventListener("click",function(){if(active&&active.started)return;movePiece(piece.id,placed.length);});
         bank.appendChild(btn);
       });
     }
-    function insertPiece(id,index){
-      var match=remaining.find(function(p){return p.id===id;});if(!match)return;
-      var lines=editor.value.split("\n");index=Math.max(1,Math.min(index,lines.length));
-      if(index===lines.length-1&&lines[index]===""){lines[index]=match.text;}else{lines.splice(index,0,match.text);}
-      editor.value=lines.join("\n");
-      remaining=remaining.filter(function(p){return p.id!==id;});
-      renderBank();repaint();setFeedback("","");
-      var cursor=lines.slice(0,index+1).join("\n").length;
-      editor.focus();editor.setSelectionRange(cursor,cursor);
+    function focusPiece(id){var line=board.querySelector('[data-id="'+id+'"]');if(line)line.focus();}
+    function movePiece(id,index){
+      var had=placed.includes(id),rest=placed.filter(function(p){return p!==id;});
+      if(!had&&rest.length===placed.length&& !pieces.some(function(p){return p.id===id;}))return;
+      rest.splice(Math.max(0,Math.min(index,rest.length)),0,id);
+      placed=rest;renderBoard();setFeedback("","");
     }
-    function lineAtPointer(e){
-      var rect=editor.getBoundingClientRect();
-      var pixel=e.clientY-rect.top+editor.scrollTop-21;
-      var row=Math.round(pixel/26);
-      return Math.max(1,Math.min(editor.value.split("\n").length,row));
+    function returnPiece(id){
+      if(!placed.includes(id))return;
+      placed=placed.filter(function(p){return p!==id;});renderBoard();setFeedback("","");
     }
-    area.addEventListener("dragover",function(e){
-      if(dragged===null)return;e.preventDefault();e.dataTransfer.dropEffect="move";area.classList.add("drag-over");
-      var row=lineAtPointer(e);
-      var y=21+(row*26)-editor.scrollTop;
-      guide.style.top=Math.max(3,Math.min(area.clientHeight-3,y))+"px";guide.style.display="block";
+    function resetPuzzle(){
+      cancelDrag();
+      if(runWorker){runWorker.terminate();runWorker=null;clearTimeout(timeout);runId++;$("run-btn").disabled=false;$("run-btn").textContent="▶ Run Code";}
+      placed=[];renderBoard();setFeedback("All pieces returned to the bank.","");
+    }
+    function over(element,x,y){
+      var r=element.getBoundingClientRect();return x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+    }
+    function insertIndex(y,excludingId){
+      var rows=Array.from(board.children).filter(function(el){return Number(el.dataset.id)!==excludingId;});
+      var index=0;for(var i=0;i<rows.length;i++){var r=rows[i].getBoundingClientRect();if(y>=r.top+r.height/2)index++;}
+      return index;
+    }
+    function showGuide(y,source,id){
+      if(!over(area,active.x,active.y)){guide.style.display="none";area.classList.remove("drag-over");return;}
+      var index=insertIndex(y,source==="editor"?id:null);
+      var rows=Array.from(board.children).filter(function(el){return Number(el.dataset.id)!==(source==="editor"?id:null);});
+      var anchor=rows[index];
+      var top=anchor?anchor.getBoundingClientRect().top:rows.length?rows[rows.length-1].getBoundingClientRect().bottom:fixed.getBoundingClientRect().bottom;
+      var r=area.getBoundingClientRect();
+      guide.style.top=(top-r.top+area.scrollTop)+"px";guide.style.display="block";
+      area.classList.add("drag-over");
+    }
+    function updateGhost(){
+      if(!active||!active.started)return;
+      ghost.style.left=(active.x+13)+"px";ghost.style.top=(active.y-12)+"px";
+      showGuide(active.y,active.source,active.id);
+    }
+    function dragAutoscroll(){
+      scrollFrame=null;if(!active||!active.started)return;
+      var r=workScroll.getBoundingClientRect(),y=active.y;
+      if(y>=r.top&&y<r.top+56)workScroll.scrollTop-=12;
+      else if(y<=r.bottom&&y>r.bottom-56)workScroll.scrollTop+=12;
+      updateGhost();scrollFrame=requestAnimationFrame(dragAutoscroll);
+    }
+    function beginDrag(){
+      if(!active||active.started)return;
+      active.started=true;ghost=document.createElement("div");ghost.className="drag-ghost";
+      ghost.textContent=pieceById(active.id).text;document.body.appendChild(ghost);
+      if(active.source==="editor"){var src=board.querySelector('[data-id="'+active.id+'"]');if(src)src.classList.add("drag-source");}
+      updateGhost();scrollFrame=requestAnimationFrame(dragAutoscroll);
+    }
+    function cancelDrag(){
+      if(active&&active.timer)clearTimeout(active.timer);
+      active=null;if(scrollFrame!==null){cancelAnimationFrame(scrollFrame);scrollFrame=null;}
+      if(ghost){ghost.remove();ghost=null;}
+      board.querySelectorAll(".drag-source").forEach(function(el){el.classList.remove("drag-source");});
+      guide.style.display="none";area.classList.remove("drag-over");
+    }
+    function prepareDrag(e,source,id){
+      if(e.button!==0||e.isPrimary===false||active)return;
+      if(e.pointerType==="mouse")e.preventDefault();
+      active={pointerId:e.pointerId,source:source,id:id,pointerType:e.pointerType,
+        sx:e.clientX,sy:e.clientY,x:e.clientX,y:e.clientY,started:false,timer:null};
+      if(e.currentTarget.setPointerCapture)try{e.currentTarget.setPointerCapture(e.pointerId);}catch(_){}
+      if(e.pointerType==="touch")active.timer=setTimeout(function(){beginDrag();},180);
+    }
+    window.addEventListener("pointermove",function(e){
+      if(!active||e.pointerId!==active.pointerId)return;
+      active.x=e.clientX;active.y=e.clientY;
+      var distance=Math.hypot(e.clientX-active.sx,e.clientY-active.sy);
+      if(!active.started){
+        if(active.pointerType==="touch"&&distance>14){cancelDrag();return;}
+        if(active.pointerType!=="touch"&&distance>4)beginDrag();
+      }
+      if(active&&active.started){e.preventDefault();updateGhost();}
+    },{passive:false});
+    window.addEventListener("pointerup",function(e){
+      if(!active||e.pointerId!==active.pointerId)return;
+      var snapshot=active,wasDragging=snapshot.started,x=e.clientX,y=e.clientY;
+      var inEditor=over(area,x,y),inBank=over(bank,x,y);
+      var index=inEditor?insertIndex(y,snapshot.source==="editor"?snapshot.id:null):null;
+      cancelDrag();
+      if(!wasDragging)return;
+      if(inEditor)movePiece(snapshot.id,index);
+      else if(snapshot.source==="editor"&&inBank)returnPiece(snapshot.id);
     });
-    area.addEventListener("dragleave",function(e){
-      if(!area.contains(e.relatedTarget)){area.classList.remove("drag-over");guide.style.display="none";}
-    });
-    area.addEventListener("drop",function(e){
-      if(dragged===null)return;e.preventDefault();
-      var index=lineAtPointer(e),id=dragged;dragged=null;
-      area.classList.remove("drag-over");guide.style.display="none";insertPiece(id,index);
-    });
+    window.addEventListener("pointercancel",function(e){if(active&&e.pointerId===active.pointerId)cancelDrag();});
+    window.addEventListener("blur",cancelDrag);
+    /* Two-finger tap anywhere with the first finger resting on a placed line returns that line. */
+    document.addEventListener("touchstart",function(e){
+      if(e.touches.length===1){
+        var t=e.touches[0],el=document.elementFromPoint(t.clientX,t.clientY);
+        var row=el&&el.closest(".assembled-line");
+        firstTouchRow=row?Number(row.dataset.id):null;
+      }else if(e.touches.length>=2&&firstTouchRow!==null){
+        var id=firstTouchRow;firstTouchRow=null;cancelDrag();returnPiece(id);e.preventDefault();
+      }
+    },{capture:true,passive:false});
+    document.addEventListener("touchend",function(e){if(e.touches.length===0)firstTouchRow=null;},{passive:true});
+    $("reset-btn").addEventListener("click",resetPuzzle);
     $("swap-btn").addEventListener("click",function(){app.classList.toggle("swapped");});
+    renderBoard();
     var imageInput=$("image-input"),attachments=$("attachments");
     $("attach-btn").addEventListener("click",function(){imageInput.click();});
     imageInput.addEventListener("change",function(){
