@@ -66,7 +66,7 @@
       border:1px solid #68666c;
       border-radius:12px;
     }
-    .pieces > .piece{flex:0 0 auto}
+    .pieces > .piece{flex:1 0 auto;justify-content:space-between}
     .piece{width:auto;max-width:100%;display:flex;align-items:center;text-align:left;gap:12px;border:1px solid #393939;background:#262527;color:#d4d4d4;border-radius:9px;padding:10px 13px;font:13px/22px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;box-shadow:0 2px 6px #1e2f4610;cursor:grab;transition:border-color .1s,box-shadow .1s;touch-action:manipulation}
     /* Keep drag grips toward the outer edge of the viewport as the panes swap. */
     .app:not(.swapped) .pieces .piece{flex-direction:row-reverse}
